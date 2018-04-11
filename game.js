@@ -3,11 +3,13 @@
 */
 // board is a square for all intents and purposes, therefore grid is X, Y where X = Y
 const BOARD_SIZE = 6
+
 const SHIPS = {
-    's1': 2,
-    's2': 3,
-    's3': 3,
+    'destroyer': 2,
+    'submarine': 3,
+    'battleship': 4,
 }
+
 const ATTACK_RESULT = {
     HIT: 'Hit',
     MISS: 'Miss',
@@ -16,18 +18,46 @@ const ATTACK_RESULT = {
     WIN: 'Win',
 }
 
-/** Game Board **/
+/** Ship **/
+class Ship {
+    constructor (classType, size, coords) {
+        this.classType = classType
+        this.health = size
+        this.coords = coords
+    }
+
+    getClassType () {
+        return this.classType
+    }
+
+    getHealth () {
+        return this.health
+    }
+
+    isSunk () {
+        return this.health === 0
+    }
+
+    hit () {
+        if (this.health > 0) {
+            this.health -= 1
+        }
+    }
+}
+
+/** Game Board per player **/
 class Board {
     constructor () {
         // TODO generate grid
         this.grid = [
-            [0,0,0,2,0,0],
-            [0,0,0,2,0,0],
-            [0,0,0,3,3,3],
-            [0,0,0,0,0,0],
-            [2,0,0,0,0,0],
-            [2,0,0,0,0,0],
+            ['','','','destroyer','',''],
+            ['','','','destroyer','',''],
+            ['battleship','','','submarine','submarine','submarine'],
+            ['battleship','','','','',''],
+            ['battleship','','','','',''],
+            ['battleship','','','','',''],
         ]
+        this.ships = []
     }
 
     setup () {
@@ -40,13 +70,20 @@ class Board {
         //     }
         // }
     }
+
+    setShips (ship) {
+        this.ships.push(ship)
+    }
+
+    getShips () {
+        return this.ships
+    }
 }
 
 class Player {
     constructor (name) {
         this.name = name
         this.board = new Board()
-        this.shipCoords = {}
         this.isWinner = false
         this.shouldTakeTurn = false
     }
@@ -60,25 +97,55 @@ class Player {
         }
     }
 
-    setShipCoords (shipClass, size, coordX, coordY) {
-        this.shipCoords[shipClass] = [coordX, coordY, size]
+    getBoard () {
+        return this.board
     }
 
     // TODO AVOID COLLISIONS!
-    placeShip (shipClass, size) {
+    placeShip (shipClass, shipSize) {
         // randomize ship placement
         // TODO set horizontal or vertical (right now only vertical)
         const coordX = Math.floor(Math.random() * BOARD_SIZE)
         // TODO properly gen ship coords
-        const coordY = coordX > BOARD_SIZE / 2 ? coordX - size : coordX + size
-        // TODO direction as optional arg
-        this.setShipCoords(shipClass, size, coordX, coordY)
+        const coordY = coordX > BOARD_SIZE / 2 ? coordX - shipSize : coordX + shipSize
+        this.getBoard().setShips(new Ship(shipClass, shipSize, [coordX, coordY]))
     }
 
-    fireMissile (coordX, coordY) {
-        console.log(this.board.grid[coordX][coordY])
-        // TODO set winnder when sunk all ships!
-        this.isWinner = true
+    attack (opponent) {
+        // randomize attempts
+        const coordX = Math.floor(Math.random() * BOARD_SIZE)
+        const coordY = Math.floor(Math.random() * BOARD_SIZE)
+        // bear in mind this is a "guess" for a ship
+        const target = opponent.getBoard().grid[coordX][coordY]
+
+        console.log(`Shots fired by ${this.name} at ${opponent.name}'s [${coordX}, ${coordY}]`)
+        // null check first!
+        if (target === null) {
+            // already tried this target, stop wasting missiles
+            console.warn(ATTACK_RESULT.ALREADY_TAKEN)
+        } else if (target.length > 0) {
+            // AHA! I've found your ship...
+            opponent.getBoard().getShips().forEach((ship) => {
+                if (ship.getClassType() === target && ship.getHealth() > 0) {
+                    ship.hit()
+                    // notify player that ship was hit and sunk when applicable
+                    if (ship.isSunk()) {
+                        console.log(`${target} ${ATTACK_RESULT.HIT} and ${ATTACK_RESULT.SUNK}!`)
+                    } else {
+                        console.log(ATTACK_RESULT.HIT)
+                    }
+                } else if (ship.getClassType() === target && ship.getHealth() === 0) {
+                    // enough already, this ship has been killed dead
+                    console.warn(ATTACK_RESULT.ALREADY_TAKEN)
+                }
+            })
+        } else {
+            // swing'n a miss!
+            opponent.getBoard().grid[coordX][coordY] = null
+            console.log(ATTACK_RESULT.MISS)
+        }
+
+        this.endTurn()
     }
 
     endTurn () {
@@ -97,12 +164,6 @@ class Game {
     }
 
     setup () {
-        // alert(`
-        //     This is a contrived, simulated version of the game Battleship.\n
-        //     Watch while two computers playing against eachother in your browser's console window.\n
-        //     Fire the missiles!
-        // `)
-
         this.player1.setup()
         this.player2.setup()
 
@@ -114,15 +175,14 @@ class Game {
     play () {
         // players alternate turns
         if (this.player1.shouldTakeTurn) {
-            this.player1.fireMissile(0,3)
-            this.player1.endTurn()
+            this.player1.attack(this.player2)
             this.player2.beginTurn()
         } else if (this.player2.shouldTakeTurn) {
-            this.player2.fireMissile(0,2)
-            this.player2.endTurn()
+            this.player2.attack(this.player1)
             this.player1.beginTurn()
         }
-        // play recursively until game end
+
+        // play recursively until a player wins
         if (this.player1.isWinner) {
             console.info(`${this.player1.name} has won!`)
         } else if (this.player2.isWinner) {
@@ -135,5 +195,12 @@ class Game {
 
 $(() => {
     const game = new Game()
+
+    // alert(`
+    //     This is a contrived, simulated version of the game Battleship.\n
+    //     Watch while two computers play against eachother in your browser's console window.\n
+    //     Fire le missiles!
+    // `)
+
     game.setup()
 })
