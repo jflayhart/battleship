@@ -18,6 +18,13 @@ const ATTACK_RESULT = {
     WIN: 'Win',
 }
 
+const logger = {
+    info: (msg) => console.log(`%c${msg}`, 'color: blue'),
+    success: (msg) => console.log(`%c${msg}`, 'color: green'),
+    warn: (msg) => console.log(`%c${msg}`, 'color: orange'),
+    danger: (msg) => console.log(`%c${msg}`, 'color: red'),
+}
+
 /** Ship **/
 class Ship {
     constructor (classType, size, coords) {
@@ -58,6 +65,7 @@ class Board {
             ['battleship','','','','',''],
         ]
         this.ships = []
+        this.sunkenShips = []
     }
 
     setup () {
@@ -71,12 +79,30 @@ class Board {
         // }
     }
 
-    setShips (ship) {
+    getShips () {
+        return this.ships
+    }
+
+    getShip (shipName) {
+        let ship
+        this.getShips().map(s => {
+            if (s.getClassType() === shipName) {
+                ship = s
+            }
+        })
+        return ship
+    }
+
+    getSunkenShips () {
+        return this.sunkenShips
+    }
+
+    setShip (ship) {
         this.ships.push(ship)
     }
 
-    getShips () {
-        return this.ships
+    setSunkenShip (ship) {
+        this.sunkenShips.push(ship)
     }
 }
 
@@ -97,10 +123,6 @@ class Player {
         }
     }
 
-    getBoard () {
-        return this.board
-    }
-
     // TODO AVOID COLLISIONS!
     placeShip (shipClass, shipSize) {
         // randomize ship placement
@@ -108,44 +130,51 @@ class Player {
         const coordX = Math.floor(Math.random() * BOARD_SIZE)
         // TODO properly gen ship coords
         const coordY = coordX > BOARD_SIZE / 2 ? coordX - shipSize : coordX + shipSize
-        this.getBoard().setShips(new Ship(shipClass, shipSize, [coordX, coordY]))
+        this.board.setShip(new Ship(shipClass, shipSize, [coordX, coordY]))
     }
 
     attack (opponent) {
         // randomize attempts
         const coordX = Math.floor(Math.random() * BOARD_SIZE)
         const coordY = Math.floor(Math.random() * BOARD_SIZE)
-        // bear in mind this is a "guess" for a ship
-        const target = opponent.getBoard().grid[coordX][coordY]
+        // bear in mind the potential target will be the class name of the ship if hit
+        const target = opponent.board.grid[coordX][coordY]
 
-        console.log(`Shots fired by ${this.name} at ${opponent.name}'s [${coordX}, ${coordY}]`)
-        // null check first!
+        console.log(`Shots fired by ${this.name} at coords: [${coordX}, ${coordY}]`)
+
         if (target === null) {
             // already tried this target, stop wasting missiles
-            console.warn(ATTACK_RESULT.ALREADY_TAKEN)
+            logger.warn(ATTACK_RESULT.ALREADY_TAKEN)
         } else if (target.length > 0) {
             // AHA! I've found your ship...
-            opponent.getBoard().getShips().forEach((ship) => {
-                if (ship.getClassType() === target && ship.getHealth() > 0) {
-                    ship.hit()
-                    // notify player that ship was hit and sunk when applicable
-                    if (ship.isSunk()) {
-                        console.log(`${target} ${ATTACK_RESULT.HIT} and ${ATTACK_RESULT.SUNK}!`)
-                    } else {
-                        console.log(ATTACK_RESULT.HIT)
-                    }
-                } else if (ship.getClassType() === target && ship.getHealth() === 0) {
-                    // enough already, this ship has been killed dead
-                    console.warn(ATTACK_RESULT.ALREADY_TAKEN)
+            const ship = opponent.board.getShip(target)
+
+            if (ship.getHealth() > 0) {
+                ship.hit()
+
+                // notify player that ship was hit and sunk when applicable
+                if (ship.isSunk()) {
+                    logger.danger(`${opponent.name} ${target} ${ATTACK_RESULT.HIT} and ${ATTACK_RESULT.SUNK}!`)
+                    opponent.board.setSunkenShip(ship)
+                } else {
+                    logger.danger(ATTACK_RESULT.HIT)
                 }
-            })
+            } else if (ship.getHealth() === 0) {
+                // enough already, this ship has been killed dead
+                logger.warn(ATTACK_RESULT.ALREADY_TAKEN)
+            }
         } else {
             // swing'n a miss!
-            opponent.getBoard().grid[coordX][coordY] = null
-            console.log(ATTACK_RESULT.MISS)
+            logger.info(ATTACK_RESULT.MISS)
         }
 
+        opponent.board.grid[coordX][coordY] = null
         this.endTurn()
+        // always check to see if player just won
+        if (opponent.board.getSunkenShips().length === opponent.board.getShips().length) {
+            logger.success(ATTACK_RESULT.WIN)
+            this.isWinner = true
+        }
     }
 
     endTurn () {
@@ -169,24 +198,25 @@ class Game {
 
         // ready player one
         this.player1.beginTurn()
-        this.play()
     }
 
     play () {
-        // players alternate turns
-        if (this.player1.shouldTakeTurn) {
-            this.player1.attack(this.player2)
-            this.player2.beginTurn()
-        } else if (this.player2.shouldTakeTurn) {
-            this.player2.attack(this.player1)
-            this.player1.beginTurn()
+        const p1 = this.player1
+        const p2 = this.player2
+
+        if (p1.shouldTakeTurn) {
+            p1.attack(p2)
+            p2.beginTurn()
+        } else if (p2.shouldTakeTurn) {
+            p2.attack(p1)
+            p1.beginTurn()
         }
 
-        // play recursively until a player wins
-        if (this.player1.isWinner) {
-            console.info(`${this.player1.name} has won!`)
-        } else if (this.player2.isWinner) {
-            console.info(`${this.player2.name} has won!`)
+        // play recursively (alternating turns) until someone wins
+        if (p1.isWinner) {
+            logger.success(`${p1.name} wins!`)
+        } else if (p2.isWinner) {
+            logger.success(`${p2.name} wins!`)
         } else {
             this.play()
         }
@@ -203,4 +233,5 @@ $(() => {
     // `)
 
     game.setup()
+    game.play()
 })
