@@ -1,4 +1,38 @@
-/** Ship **/
+/**
+ * CONFIG - Set config and logging for the game here (see README for rules)
+ */
+
+// board is a square, for all intents and purposes
+const BOARD_SIZE = 6
+
+const SHIPS = {
+    'destroyer': 2,
+    'submarine': 3,
+    'battleship': 4,
+}
+
+const ATTACK_RESULT = {
+    HIT: 'Hit',
+    MISS: 'Miss',
+    ALREADY_TAKEN: 'Already Taken',
+    SUNK: 'Sunk',
+    WIN: 'Win',
+}
+
+const logger = {
+    info: (msg) => console.log(`%c${msg}`, 'color: blue'),
+    success: (msg) => console.log(`%c${msg}`, 'color: green'),
+    warn: (msg) => console.log(`%c${msg}`, 'color: orange'),
+    danger: (msg) => console.log(`%c${msg}`, 'color: red'),
+}
+
+
+/**
+ * Class object representation of a ship
+ * @class Ship
+ * @param {string} classType - Class of the ship (see SHIPS config)
+ * @param {number} size - The size of the ship, also used for tracking health of ship if it's attacked.
+ */
 class Ship {
     constructor (classType, size) {
         this.classType = classType
@@ -29,7 +63,10 @@ class Ship {
     }
 }
 
-/** Game Board per player **/
+/**
+ * Class object representation of a player's board
+ * @class Board
+ */
 class Board {
     constructor () {
         this.grid = []
@@ -98,6 +135,11 @@ class Board {
     }
 }
 
+/**
+ * Class object representation of a player
+ * @class Player
+ * @param {string} name - name of player
+ */
 class Player {
     constructor (name) {
         this.name = name
@@ -182,6 +224,10 @@ class Player {
     }
 }
 
+/**
+ * The game play
+ * @class Game
+ */
 class Game {
     constructor () {
         this.player1 = new Player('player1')
@@ -209,6 +255,7 @@ class Game {
         }
 
         // play recursively (alternating turns) until someone wins
+        /* eslint-disable no-undef */
         if (p1.isWinner) {
             logger.success(`${p1.name} wins!`)
         } else if (p2.isWinner) {
@@ -219,6 +266,7 @@ class Game {
     }
 }
 
+// init
 $(() => {
     const game = new Game()
 

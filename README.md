@@ -1,10 +1,9 @@
 # Battleshipt
 This is a contrived, simulated version of the game Battleship. Watch while two computers play against eachother in your browser's console window.
 
-Fire le missiles!
+Fire le missiles! :boom:
 
-## Rules
-The game consists of:<br>
+### Rules
 - 2 Players
 - Each player has a grid on which to place ships
 - The game begins once both players have placed their ships
