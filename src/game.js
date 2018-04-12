@@ -11,10 +11,14 @@ const SHIPS = {
     'battleship': 4,
 }
 
+const SHIP_ORIENTATIONS = [
+    'horizontal',
+    'vertical',
+]
+
 const ATTACK_RESULT = {
     HIT: 'Hit',
     MISS: 'Miss',
-    ALREADY_TAKEN: 'Already Taken',
     SUNK: 'Sunk',
     WIN: 'Win',
 }
@@ -22,7 +26,6 @@ const ATTACK_RESULT = {
 const logger = {
     info: (msg) => console.log(`%c${msg}`, 'color: blue'),
     success: (msg) => console.log(`%c${msg}`, 'color: green'),
-    warn: (msg) => console.log(`%c${msg}`, 'color: orange'),
     danger: (msg) => console.log(`%c${msg}`, 'color: red'),
 }
 
@@ -69,7 +72,6 @@ class Ship {
  */
 class Board {
     constructor () {
-        this.grid = []
         /* Example grid
             ['','','','destroyer','',''],
             ['','','','destroyer','',''],
@@ -78,6 +80,7 @@ class Board {
             ['battleship','','','','',''],
             ['battleship','','','','',''],
         */
+        this.grid = []
         this.ships = []
         this.sunkenShips = []
         this.size = BOARD_SIZE
@@ -107,19 +110,17 @@ class Board {
         return ship
     }
 
-    setShip (shipClass, shipSize, direction, rowCoord, colCoord) {
+    setShip (shipClass, shipSize, orientation, rowCoord, colCoord) {
         for (let i = 0; i < shipSize; i++) {
-            if (direction === 'vertical') {
+            if (orientation === 'vertical') {
                 // avoid going out of bounds vertically
-                const row = rowCoord > this.size - shipSize ? rowCoord - i : rowCoord + i
-                this.grid[row][colCoord] = shipClass
-                console.log(`${shipClass} set ${direction} at [${row}, ${colCoord}]`)
+                rowCoord = rowCoord > this.size - shipSize ? rowCoord - i : rowCoord + i
             } else {
                 // avoid going out of bounds horizontally
-                const col = colCoord > this.size - shipSize ? colCoord - i : colCoord + i
-                this.grid[rowCoord][col] = shipClass
-                console.log(`${shipClass} set ${direction} at [${rowCoord}, ${col}]`)
+                colCoord = colCoord > this.size - shipSize ? colCoord - i : colCoord + i
             }
+            this.grid[rowCoord][colCoord] = shipClass
+            console.log(`${shipClass} set ${orientation} at [${rowCoord}, ${colCoord}]`)
         }
 
         const ship = new Ship(shipClass, shipSize)
@@ -163,12 +164,9 @@ class Player {
         // randomize ship placement
         const initRow = Math.floor(Math.random() * this.board.size) // [0][1]
         const initCol = Math.floor(Math.random() * this.board.size) // [3]
-        // TODO AVOID COLLISIONS!
-        if (this.board.grid[initRow][initCol].length === 0) {
-            // use recursive function?
-        }
-        // TODO randomize horizontal or vertical, can clean up code here...
-        this.board.setShip(shipClass, shipSize, 'vertical', initRow, initCol)
+        const orientation = this.pickOrientation();
+
+        this.board.setShip(shipClass, shipSize, orientation, initRow, initCol)
     }
 
     attack (opponent) {
@@ -181,8 +179,7 @@ class Player {
         console.log(`Shots fired by ${this.name}: [${rowCoord}, ${colCoord}]`)
 
         if (target === null) {
-            // no-op
-            logger.warn(ATTACK_RESULT.ALREADY_TAKEN)
+            this.attack()
         } else if (target.length > 0) {
             // AHA! I've found your ship...
             const ship = opponent.board.getShip(target)
@@ -221,6 +218,11 @@ class Player {
 
     beginTurn () {
         this.shouldTakeTurn = true
+    }
+
+    pickOrientation () {
+        const arrPosition = Math.floor(Math.random() * SHIP_ORIENTATIONS.length)
+        return SHIP_ORIENTATIONS[arrPosition]
     }
 }
 
