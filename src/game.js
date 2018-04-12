@@ -1,9 +1,9 @@
 /** Ship **/
 class Ship {
-    constructor (classType, size, coords) {
+    constructor (classType, size) {
         this.classType = classType
         this.health = size
-        this.coords = coords
+        this.size = size
     }
 
     getClassType () {
@@ -12,6 +12,10 @@ class Ship {
 
     getHealth () {
         return this.health
+    }
+
+    getSize () {
+        return this.size
     }
 
     isSunk () {
@@ -28,28 +32,28 @@ class Ship {
 /** Game Board per player **/
 class Board {
     constructor () {
-        // TODO generate grid
-        this.grid = [
+        this.grid = []
+        /* Example grid
             ['','','','destroyer','',''],
             ['','','','destroyer','',''],
             ['battleship','','','submarine','submarine','submarine'],
             ['battleship','','','','',''],
             ['battleship','','','','',''],
             ['battleship','','','','',''],
-        ]
+        */
         this.ships = []
         this.sunkenShips = []
+        this.size = BOARD_SIZE
     }
 
     setup () {
-        // O(N2) set up 2D array for grid rows (y) and columns (x)
-        // TODO generate grid
-        // for(let y=0; y<BOARD_SIZE; y++) {
-        //     this.grid[y] = []
-        //     for(let x=0; x<BOARD_SIZE; x++) {
-        //         this.grid[y][x] = 0
-        //     }
-        // }
+        // O(N2) set up 2D array for grid
+        for(let row=0; row<this.size; row++) {
+            this.grid[row] = []
+            for(let col=0; col<this.size; col++) {
+                this.grid[row][col] = ''
+            }
+        }
     }
 
     getShips () {
@@ -66,12 +70,27 @@ class Board {
         return ship
     }
 
-    getSunkenShips () {
-        return this.sunkenShips
+    setShip (shipClass, shipSize, direction, rowCoord, colCoord) {
+        for (let i = 0; i < shipSize; i++) {
+            if (direction === 'vertical') {
+                // avoid going out of bounds vertically
+                const row = rowCoord > this.size - shipSize ? rowCoord - i : rowCoord + i
+                this.grid[row][colCoord] = shipClass
+                console.log(`${shipClass} set ${direction} at [${row}, ${colCoord}]`)
+            } else {
+                // avoid going out of bounds horizontally
+                const col = colCoord > this.size - shipSize ? colCoord - i : colCoord + i
+                this.grid[rowCoord][col] = shipClass
+                console.log(`${shipClass} set ${direction} at [${rowCoord}, ${col}]`)
+            }
+        }
+
+        const ship = new Ship(shipClass, shipSize)
+        this.ships.push(ship)
     }
 
-    setShip (ship) {
-        this.ships.push(ship)
+    getSunkenShips () {
+        return this.sunkenShips
     }
 
     setSunkenShip (ship) {
@@ -89,34 +108,38 @@ class Player {
 
     setup () {
         console.log(`${this.name} is setting up their board...`)
-        // player has to be aware of the board to place their ships
+        // player has to be aware of the board to place ships
         this.board.setup()
+
         for (let ship in SHIPS) {
             this.placeShip(ship, SHIPS[ship])
         }
+        console.log(this.board.grid)
     }
 
-    // TODO AVOID COLLISIONS!
     placeShip (shipClass, shipSize) {
         // randomize ship placement
-        // TODO set horizontal or vertical (right now only vertical)
-        const coordX = Math.floor(Math.random() * BOARD_SIZE)
-        // TODO properly gen ship coords
-        const coordY = coordX > BOARD_SIZE / 2 ? coordX - shipSize : coordX + shipSize
-        this.board.setShip(new Ship(shipClass, shipSize, [coordX, coordY]))
+        const initRow = Math.floor(Math.random() * this.board.size) // [0][1]
+        const initCol = Math.floor(Math.random() * this.board.size) // [3]
+        // TODO AVOID COLLISIONS!
+        if (this.board.grid[initRow][initCol].length === 0) {
+            // use recursive function?
+        }
+        // TODO randomize horizontal or vertical, can clean up code here...
+        this.board.setShip(shipClass, shipSize, 'vertical', initRow, initCol)
     }
 
     attack (opponent) {
         // randomize attempts
-        const coordX = Math.floor(Math.random() * BOARD_SIZE)
-        const coordY = Math.floor(Math.random() * BOARD_SIZE)
-        // bear in mind the potential target will be the class name of the ship if hit
-        const target = opponent.board.grid[coordX][coordY]
+        const rowCoord = Math.floor(Math.random() * this.board.size)
+        const colCoord = Math.floor(Math.random() * this.board.size)
+        // if hit, target = class of the ship
+        const target = opponent.board.grid[rowCoord][colCoord]
 
-        console.log(`Shots fired by ${this.name} at coords: [${coordX}, ${coordY}]`)
+        console.log(`Shots fired by ${this.name}: [${rowCoord}, ${colCoord}]`)
 
         if (target === null) {
-            // already tried this target, stop wasting missiles
+            // no-op
             logger.warn(ATTACK_RESULT.ALREADY_TAKEN)
         } else if (target.length > 0) {
             // AHA! I've found your ship...
@@ -127,27 +150,27 @@ class Player {
 
                 // notify player that ship was hit and sunk when applicable
                 if (ship.isSunk()) {
-                    logger.danger(`${opponent.name} ${target} ${ATTACK_RESULT.HIT} and ${ATTACK_RESULT.SUNK}!`)
+                    logger.danger(`${opponent.name}'s ${target} ${ATTACK_RESULT.HIT} and ${ATTACK_RESULT.SUNK}!`)
                     opponent.board.setSunkenShip(ship)
                 } else {
                     logger.danger(ATTACK_RESULT.HIT)
                 }
-            } else if (ship.getHealth() === 0) {
-                // enough already, this ship has been killed dead
-                logger.warn(ATTACK_RESULT.ALREADY_TAKEN)
             }
         } else {
             // swing'n a miss!
             logger.info(ATTACK_RESULT.MISS)
         }
 
-        opponent.board.grid[coordX][coordY] = null
+        // space was attacked, null it out
+        opponent.board.grid[rowCoord][colCoord] = null
         this.endTurn()
         // always check to see if player just won
         if (opponent.board.getSunkenShips().length === opponent.board.getShips().length) {
             logger.success(ATTACK_RESULT.WIN)
             this.isWinner = true
         }
+        // TODO REMOVE AFTER TESTING
+        this.isWinner = true
     }
 
     endTurn () {
