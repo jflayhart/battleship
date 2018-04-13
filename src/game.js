@@ -172,8 +172,8 @@ class Player {
         console.log(`Shots fired at ${opponent.name}: [${rowCoord}, ${colCoord}]`)
 
         if (target === null) {
-            // TODO already been attacked, make the player try other coords
-            console.warn('ALREADY_TAKEN')
+            // already attacked this spot, make the player try other coords
+            this.attack(opponent)
         } else if (target.length > 0) {
             // AHA! I've found your ship...
             const ship = opponent.board.getShip(target)
@@ -221,23 +221,23 @@ class Player {
     pickCoords (shipSize, orientation) {
         const row = this.randomNumGenerator(this.board.size)
         const col = this.randomNumGenerator(this.board.size)
-        let coordsAvailable = true
         let coords = []
 
-        // as we go through picking coords, make sure we don't overlap ships!
         for (let i = 0; i < shipSize; i++) {
+            let rowCoord = row
+            let colCoord = col
             if (orientation === 'vertical') {
                 // avoid going out of bounds vertically
-                const modifiedRow = row > this.board.size - shipSize ? row - i : row + i
-                coords.push([modifiedRow, col])
-                coordsAvailable = this.board.grid[modifiedRow][col].length === 0
+                rowCoord = row > this.board.size - shipSize ? row - i : row + i
             } else {
                 // avoid going out of bounds horizontally
-                const modifiedCol = col > this.board.size - shipSize ? col - i : col + i
-                coords.push([row, modifiedCol])
-                coordsAvailable = this.board.grid[row][modifiedCol].length === 0
+                colCoord = col > this.board.size - shipSize ? col - i : col + i
             }
 
+            coords.push([rowCoord, colCoord])
+
+            // as we go through picking coords, make sure we don't overlap ships!
+            const coordsAvailable = this.board.grid[rowCoord][colCoord].length === 0
             if (!coordsAvailable) {
                 return 'unavailable'
             }
@@ -294,8 +294,8 @@ class Game {
 }
 
 // init
-$(() => {
+window.onload = () => {
     const game = new Game()
     game.setup()
     game.play()
-})
+}
