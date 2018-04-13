@@ -8,7 +8,6 @@ Fire le missiles! :boom:
 - Each player has a 10x10 grid on which to place 4 ships: destroyer (2), submarine (3), battleship (4), carrier (5)
 - The game begins once both players have placed their ships
 - The players take turns choosing a position on the opponent’s grid to attack
-- Each player has three ships that can be placed vertically or horizontally on the board
 - Ships cannot overlap other ships
 - A ship must stay within bounds of the board
 
