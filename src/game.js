@@ -163,19 +163,12 @@ class Player {
     }
 
     attack (opponent) {
-        // randomize attempts
-        const rowCoord = this.randomNumGenerator(this.board.size)
-        const colCoord = this.randomNumGenerator(this.board.size)
+        // scan potential coords
+        const coords = this.chooseOpponentCoords(opponent.board.grid);
+        const rowCoord = coords[0]
+        const colCoord = coords[1]
         // if hit, target = class of the ship
-        // TODO optimize accuracy
         const target = opponent.board.grid[rowCoord][colCoord]
-
-        // already attacked this spot, make the player try other coords
-        if (target === null) {
-            // resume the attack loop
-            this.attack(opponent)
-            return
-        }
 
         console.log(`Shots fired at ${opponent.name}: [${rowCoord}, ${colCoord}]`)
 
@@ -253,6 +246,23 @@ class Player {
         return coords
     }
 
+    chooseOpponentCoords (opponentGrid) {
+        // TODO optimize accuracy
+        // randomize attempts
+        let rowCoord = this.randomNumGenerator(this.board.size)
+        let colCoord = this.randomNumGenerator(this.board.size)
+        let target = opponentGrid[rowCoord][colCoord]
+
+        // if previously attacked, choose another coord
+        while (target === null) {
+            rowCoord = this.randomNumGenerator(this.board.size)
+            colCoord = this.randomNumGenerator(this.board.size)
+            target = opponentGrid[rowCoord][colCoord]
+        }
+
+        return [rowCoord, colCoord]
+    }
+
     randomNumGenerator (max) {
         return Math.floor(Math.random() * Math.floor(max))
     }
@@ -271,7 +281,6 @@ class Game {
     setup () {
         this.player1.setup()
         this.player2.setup()
-
         // ready player one
         this.player1.beginTurn()
     }
