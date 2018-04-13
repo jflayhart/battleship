@@ -145,7 +145,7 @@ class Player {
     placeShip (shipClass, shipSize) {
         // randomize ship placement
         const orientation = this.chooseShipOrientation()
-        const chosenCoords = this.pickCoords(shipSize, orientation)
+        const chosenCoords = this.chooseCoords(shipSize, orientation)
 
         if (chosenCoords === 'unavailable') {
             // oops, we needn't have overlapping ships! try again...
@@ -225,7 +225,7 @@ class Player {
         return SHIP_ORIENTATIONS[arrPosition]
     }
 
-    pickCoords (shipSize, orientation) {
+    chooseCoords (shipSize, orientation) {
         const row = this.randomNumGenerator(this.board.size)
         const col = this.randomNumGenerator(this.board.size)
         let coords = []
