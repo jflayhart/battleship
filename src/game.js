@@ -180,7 +180,7 @@ class Player {
         console.log(`Shots fired at ${opponent.name}: [${rowCoord}, ${colCoord}]`)
 
         if (target.length > 0) {
-            // AHA! I've found your ship...
+            // Ahoy! enemy ship spotted...
             const ship = opponent.board.getShip(target)
 
             if (ship.getHealth() > 0) {
