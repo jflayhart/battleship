@@ -29,7 +29,7 @@ const logger = {
 
 
 /**
- * Class object representation of a ship
+ * Class object representation of a ship - a ship has a class and size
  * @class Ship
  * @param {string} classType - Class of the ship (see SHIPS config)
  * @param {number} size - The size of the ship, also used for tracking health of ship if it's attacked.
@@ -60,7 +60,7 @@ class Ship {
 }
 
 /**
- * Class object representation of a player's board
+ * Class object representation of a player's board - a board has a grid and ships
  * @class Board
  */
 class Board {
@@ -120,7 +120,7 @@ class Board {
 }
 
 /**
- * Class object representation of a player
+ * Class object representation of a player - the player has a board with ships and makes decisions on where and how to place them
  * @class Player
  * @param {string} name - name of player
  */
@@ -156,7 +156,7 @@ class Player {
                 const row = coords[0]
                 const col = coords[1]
 
-                logger.info(`${shipClass} set at [${row}, ${col}]`)
+                logger.info(`${shipClass} set ${orientation} at [${row}, ${col}]`)
                 this.board.grid[row][col] = shipClass
             })
         }
@@ -167,12 +167,14 @@ class Player {
         const rowCoord = this.randomNumGenerator(this.board.size)
         const colCoord = this.randomNumGenerator(this.board.size)
         // if hit, target = class of the ship
+        // TODO optimize accuracy
         const target = opponent.board.grid[rowCoord][colCoord]
 
         // already attacked this spot, make the player try other coords
         if (target === null) {
+            // resume the attack loop
             this.attack(opponent)
-            return null
+            return
         }
 
         console.log(`Shots fired at ${opponent.name}: [${rowCoord}, ${colCoord}]`)
@@ -182,9 +184,10 @@ class Player {
             const ship = opponent.board.getShip(target)
 
             if (ship.getHealth() > 0) {
+                // aye direct hit, captain!
                 ship.hit()
 
-                // notify player that ship was hit and sunk when applicable
+                // skadoosh
                 if (ship.isSunk()) {
                     logger.danger(`${opponent.name}'s ${target} ${ATTACK_RESULT.HIT} and ${ATTACK_RESULT.SUNK}!`)
                     opponent.board.setSunkenShip(ship)
@@ -201,7 +204,7 @@ class Player {
         opponent.board.grid[rowCoord][colCoord] = null
         this.endTurn()
 
-        // always check to see if player just won
+        // always check to see if player won
         if (opponent.board.getSunkenShips().length === opponent.board.getShips().length) {
             logger.success(ATTACK_RESULT.WIN)
             logger.success(`${this.name} wins!`)
@@ -256,7 +259,7 @@ class Player {
 }
 
 /**
- * The game play
+ * The game play - a game has players
  * @class Game
  */
 class Game {
