@@ -156,7 +156,7 @@ class Player {
                 const row = coords[0]
                 const col = coords[1]
 
-                console.log(`${shipClass} set at [${row}, ${col}]`)
+                logger.info(`${shipClass} set at [${row}, ${col}]`)
                 this.board.grid[row][col] = shipClass
             })
         }
@@ -169,12 +169,15 @@ class Player {
         // if hit, target = class of the ship
         const target = opponent.board.grid[rowCoord][colCoord]
 
+        // already attacked this spot, make the player try other coords
+        if (target === null) {
+            this.attack(opponent)
+            return null
+        }
+
         console.log(`Shots fired at ${opponent.name}: [${rowCoord}, ${colCoord}]`)
 
-        if (target === null) {
-            // already attacked this spot, make the player try other coords
-            this.attack(opponent)
-        } else if (target.length > 0) {
+        if (target.length > 0) {
             // AHA! I've found your ship...
             const ship = opponent.board.getShip(target)
 
@@ -201,6 +204,7 @@ class Player {
         // always check to see if player just won
         if (opponent.board.getSunkenShips().length === opponent.board.getShips().length) {
             logger.success(ATTACK_RESULT.WIN)
+            logger.success(`${this.name} wins!`)
             this.isWinner = true
         }
     }
@@ -282,12 +286,7 @@ class Game {
         }
 
         // play recursively (alternating turns) until someone wins
-        /* eslint-disable no-undef */
-        if (p1.isWinner) {
-            logger.success(`${p1.name} wins!`)
-        } else if (p2.isWinner) {
-            logger.success(`${p2.name} wins!`)
-        } else {
+        if (!p1.isWinner && !p2.isWinner) {
             this.play()
         }
     }
