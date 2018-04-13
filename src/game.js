@@ -2,19 +2,17 @@
  * CONFIG - Set config and logging for the game here (see README for rules)
  */
 
-// board is a square, for all intents and purposes
-const BOARD_SIZE = 6
+// board is a 10x10 square
+const BOARD_SIZE = 10
 
 const SHIPS = {
     'destroyer': 2,
     'submarine': 3,
     'battleship': 4,
+    'carrier': 5,
 }
 
-const SHIP_ORIENTATIONS = [
-    'horizontal',
-    'vertical',
-]
+const SHIP_ORIENTATIONS = ['horizontal', 'vertical']
 
 const ATTACK_RESULT = {
     HIT: 'Hit',
@@ -40,7 +38,6 @@ class Ship {
     constructor (classType, size) {
         this.classType = classType
         this.health = size
-        this.size = size
     }
 
     getClassType () {
@@ -49,10 +46,6 @@ class Ship {
 
     getHealth () {
         return this.health
-    }
-
-    getSize () {
-        return this.size
     }
 
     isSunk () {
@@ -73,12 +66,14 @@ class Ship {
 class Board {
     constructor () {
         /* Example grid
+        [
             ['','','','destroyer','',''],
             ['','','','destroyer','',''],
             ['battleship','','','submarine','submarine','submarine'],
             ['battleship','','','','',''],
             ['battleship','','','','',''],
             ['battleship','','','','',''],
+        ]
         */
         this.grid = []
         this.ships = []
@@ -100,29 +95,17 @@ class Board {
         return this.ships
     }
 
-    getShip (shipName) {
+    getShip (classType) {
         let ship
         this.getShips().map(s => {
-            if (s.getClassType() === shipName) {
+            if (s.getClassType() === classType) {
                 ship = s
             }
         })
         return ship
     }
 
-    setShip (shipClass, shipSize, orientation, rowCoord, colCoord) {
-        for (let i = 0; i < shipSize; i++) {
-            if (orientation === 'vertical') {
-                // avoid going out of bounds vertically
-                rowCoord = rowCoord > this.size - shipSize ? rowCoord - i : rowCoord + i
-            } else {
-                // avoid going out of bounds horizontally
-                colCoord = colCoord > this.size - shipSize ? colCoord - i : colCoord + i
-            }
-            this.grid[rowCoord][colCoord] = shipClass
-            console.log(`${shipClass} set ${orientation} at [${rowCoord}, ${colCoord}]`)
-        }
-
+    setShip (shipClass, shipSize) {
         const ship = new Ship(shipClass, shipSize)
         this.ships.push(ship)
     }
@@ -157,29 +140,40 @@ class Player {
         for (let ship in SHIPS) {
             this.placeShip(ship, SHIPS[ship])
         }
-        console.log(this.board.grid)
     }
 
     placeShip (shipClass, shipSize) {
         // randomize ship placement
-        const initRow = Math.floor(Math.random() * this.board.size) // [0][1]
-        const initCol = Math.floor(Math.random() * this.board.size) // [3]
-        const orientation = this.pickOrientation();
+        const orientation = this.chooseShipOrientation()
+        const chosenCoords = this.pickCoords(shipSize, orientation)
 
-        this.board.setShip(shipClass, shipSize, orientation, initRow, initCol)
+        if (chosenCoords === 'unavailable') {
+            // oops, we needn't have overlapping ships! try again...
+            this.placeShip(shipClass, shipSize)
+        } else {
+            this.board.setShip(shipClass, shipSize)
+            chosenCoords.map(coords => {
+                const row = coords[0]
+                const col = coords[1]
+
+                console.log(`${shipClass} set at [${row}, ${col}]`)
+                this.board.grid[row][col] = shipClass
+            })
+        }
     }
 
     attack (opponent) {
         // randomize attempts
-        const rowCoord = Math.floor(Math.random() * this.board.size)
-        const colCoord = Math.floor(Math.random() * this.board.size)
+        const rowCoord = this.randomNumGenerator(this.board.size)
+        const colCoord = this.randomNumGenerator(this.board.size)
         // if hit, target = class of the ship
         const target = opponent.board.grid[rowCoord][colCoord]
 
-        console.log(`Shots fired by ${this.name}: [${rowCoord}, ${colCoord}]`)
+        console.log(`Shots fired at ${opponent.name}: [${rowCoord}, ${colCoord}]`)
 
         if (target === null) {
-            this.attack()
+            // TODO already been attacked, make the player try other coords
+            console.warn('ALREADY_TAKEN')
         } else if (target.length > 0) {
             // AHA! I've found your ship...
             const ship = opponent.board.getShip(target)
@@ -203,13 +197,12 @@ class Player {
         // space was attacked, null it out
         opponent.board.grid[rowCoord][colCoord] = null
         this.endTurn()
+
         // always check to see if player just won
         if (opponent.board.getSunkenShips().length === opponent.board.getShips().length) {
             logger.success(ATTACK_RESULT.WIN)
             this.isWinner = true
         }
-        // TODO REMOVE AFTER TESTING
-        this.isWinner = true
     }
 
     endTurn () {
@@ -220,9 +213,41 @@ class Player {
         this.shouldTakeTurn = true
     }
 
-    pickOrientation () {
-        const arrPosition = Math.floor(Math.random() * SHIP_ORIENTATIONS.length)
+    chooseShipOrientation () {
+        const arrPosition = this.randomNumGenerator(SHIP_ORIENTATIONS.length)
         return SHIP_ORIENTATIONS[arrPosition]
+    }
+
+    pickCoords (shipSize, orientation) {
+        const row = this.randomNumGenerator(this.board.size)
+        const col = this.randomNumGenerator(this.board.size)
+        let coordsAvailable = true
+        let coords = []
+
+        // as we go through picking coords, make sure we don't overlap ships!
+        for (let i = 0; i < shipSize; i++) {
+            if (orientation === 'vertical') {
+                // avoid going out of bounds vertically
+                const modifiedRow = row > this.board.size - shipSize ? row - i : row + i
+                coords.push([modifiedRow, col])
+                coordsAvailable = this.board.grid[modifiedRow][col].length === 0
+            } else {
+                // avoid going out of bounds horizontally
+                const modifiedCol = col > this.board.size - shipSize ? col - i : col + i
+                coords.push([row, modifiedCol])
+                coordsAvailable = this.board.grid[row][modifiedCol].length === 0
+            }
+
+            if (!coordsAvailable) {
+                return 'unavailable'
+            }
+        }
+
+        return coords
+    }
+
+    randomNumGenerator (max) {
+        return Math.floor(Math.random() * Math.floor(max))
     }
 }
 
@@ -271,13 +296,6 @@ class Game {
 // init
 $(() => {
     const game = new Game()
-
-    // alert(`
-    //     This is a contrived, simulated version of the game Battleship.\n
-    //     Watch while two computers play against eachother in your browser's console window.\n
-    //     Fire le missiles!
-    // `)
-
     game.setup()
     game.play()
 })
