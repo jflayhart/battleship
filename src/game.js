@@ -164,7 +164,7 @@ class Player {
 
     attack (opponent) {
         // scan potential coords
-        const coords = this.chooseAttackCoords(opponent.board.grid);
+        const coords = this.chooseAttackCoords(opponent.board.grid)
         const rowCoord = coords[0]
         const colCoord = coords[1]
         // if hit, target = class of the ship
