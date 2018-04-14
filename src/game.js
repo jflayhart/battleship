@@ -147,7 +147,7 @@ class Player {
         const orientation = this.chooseShipOrientation()
         const chosenCoords = this.chooseShipCoords(shipSize, orientation)
 
-        if (chosenCoords === 'unavailable') {
+        if (chosenCoords === null) {
             // oops, we needn't have overlapping ships! try again...
             this.placeShip(shipClass, shipSize)
         } else {
@@ -164,7 +164,7 @@ class Player {
 
     attack (opponent) {
         // scan potential coords
-        const coords = this.chooseOpponentCoords(opponent.board.grid);
+        const coords = this.chooseAttackCoords(opponent.board.grid);
         const rowCoord = coords[0]
         const colCoord = coords[1]
         // if hit, target = class of the ship
@@ -239,21 +239,21 @@ class Player {
             // as we go through picking coords, make sure we don't overlap ships!
             const coordsAvailable = this.board.grid[rowCoord][colCoord].length === 0
             if (!coordsAvailable) {
-                return 'unavailable'
+                return null
             }
         }
 
         return coords
     }
 
-    chooseOpponentCoords (opponentGrid) {
+    chooseAttackCoords (opponentGrid) {
         // TODO optimize accuracy
         // randomize attempts
         let rowCoord = this.randomNumGenerator(this.board.size)
         let colCoord = this.randomNumGenerator(this.board.size)
         let target = opponentGrid[rowCoord][colCoord]
 
-        // if previously attacked, choose another coord
+        // if already attacked coords, choose another coord
         while (target === null) {
             rowCoord = this.randomNumGenerator(this.board.size)
             colCoord = this.randomNumGenerator(this.board.size)
