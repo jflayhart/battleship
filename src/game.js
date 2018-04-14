@@ -202,8 +202,8 @@ class Player {
             logger.success(ATTACK_RESULT.WIN)
             logger.success(`${this.name} wins!`)
             this.isWinner = true
-            console.info('Winner\'s board:', this.board.grid)
-            console.info(`${opponent.name}'s board:`, opponent.board.grid)
+            console.info(`${this.name}'s (winner) board:`, this.board.grid)
+            console.info(`${opponent.name}'s (loser) board:`, opponent.board.grid)
         }
     }
 
